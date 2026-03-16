@@ -3,6 +3,7 @@ import {
   checkRepeatedEnding,
   checkMissingComma,
   checkHiraganaRatio,
+  checkParticleMistake,
   checkDoubleNegative,
   checkStyleMix,
   checkRedundancy,
@@ -71,6 +72,7 @@ export function analyze(text: string, isPro: boolean): AnalysisResult {
 
   // 無料チェック
   const issues: Issue[] = [
+    ...checkParticleMistake(text),
     ...checkLongSentence(sentences),
     ...checkRepeatedEnding(sentences),
     ...checkMissingComma(sentences),

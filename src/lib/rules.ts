@@ -5,6 +5,7 @@ export interface Issue {
   severity: Severity
   message: string
   detail: string
+  suggestedFix?: string
   pro: boolean
 }
 
@@ -24,6 +25,7 @@ export function checkLongSentence(sentences: string[]): Issue[] {
         severity: 'warning',
         message: `${i + 1}文目が長すぎます（${len}字）`,
         detail: '一文は60字以内を目安にすると読みやすくなります。',
+        suggestedFix: '文の途中で意味が切れる箇所を探し、「。」で区切りましょう。\n例：「〜であり、〜です。」→「〜です。〜です。」',
         pro: false,
       })
     }
@@ -48,6 +50,7 @@ export function checkRepeatedEnding(sentences: string[]): Issue[] {
           severity: 'warning',
           message: `語尾「${curr}」が${streak}文連続しています`,
           detail: '同じ語尾が続くとリズムが単調になります。語尾を変えてみましょう。',
+          suggestedFix: '「〜です。」→「〜となっています。」「〜でしょう。」「〜と言えます。」などに言い換えてみてください。',
           pro: false,
         })
         streak = 1
@@ -70,6 +73,7 @@ export function checkMissingComma(sentences: string[]): Issue[] {
         severity: 'info',
         message: `${i + 1}文目に読点がありません（${clean.length}字）`,
         detail: '長い文には読点「、」を入れると読みやすくなります。',
+        suggestedFix: '接続詞（「そして」「しかし」「また」）の後や、条件節（「〜ので」「〜が」）の後に「、」を入れましょう。',
         pro: false,
       })
     }
@@ -85,28 +89,72 @@ export function checkHiraganaRatio(_text: string, ratio: number): Issue[] {
       severity: 'info',
       message: `ひらがな率が低いです（${Math.round(ratio * 100)}%）`,
       detail: 'ひらがなが少ないと漢字が多くなり読みにくくなる場合があります。目安は30%以上です。',
+      suggestedFix: '難しい漢字をひらがなに開くことを検討しましょう。\n例：「致します」→「いたします」、「頂く」→「いただく」',
       pro: false,
     }]
   }
   return []
 }
 
+// R008: 助詞の書き間違い
+const PARTICLE_MISTAKES: { wrong: RegExp; right: string; example: string }[] = [
+  {
+    wrong: /([^\n]{0,4})(わ)([がをにもはへで、。！？\s])/g,
+    right: 'は',
+    example: '「今日わ」→「今日は」',
+  },
+  {
+    wrong: /([^\n]{0,4})(お)([食飲見聞持買作使送持受与取渡])/g,
+    right: 'を',
+    example: '「ご飯お食べた」→「ご飯を食べた」',
+  },
+  {
+    wrong: /([^\n]{0,4})(え)([行向進帰来戻])/g,
+    right: 'へ',
+    example: '「学校え行く」→「学校へ行く」',
+  },
+]
+
+export function checkParticleMistake(text: string): Issue[] {
+  const issues: Issue[] = []
+  const seen = new Set<string>()
+
+  PARTICLE_MISTAKES.forEach(({ wrong, right, example }) => {
+    const matches = [...text.matchAll(wrong)]
+    matches.forEach(m => {
+      const key = `${m[2]}-${right}`
+      if (seen.has(key)) return
+      seen.add(key)
+      issues.push({
+        id: 'R008',
+        severity: 'error',
+        message: `助詞の誤りの可能性があります（「${m[2]}」→「${right}」）`,
+        detail: `「${m[2]}」は「${right}」の誤りかもしれません。文脈を確認してください。`,
+        suggestedFix: example,
+        pro: false,
+      })
+    })
+  })
+  return issues
+}
+
 // R005: 二重否定（Pro）
 export function checkDoubleNegative(text: string): Issue[] {
-  const patterns = [
-    /ないわけではない/g,
-    /なくはない/g,
-    /ないこともない/g,
-    /ないとは言えない/g,
+  const patterns: { re: RegExp; fix: string }[] = [
+    { re: /ないわけではない/g, fix: '「〜ないわけではない」→「〜ある」または「〜できる」' },
+    { re: /なくはない/g, fix: '「〜なくはない」→「〜ある」' },
+    { re: /ないこともない/g, fix: '「〜ないこともない」→「〜できる」' },
+    { re: /ないとは言えない/g, fix: '「〜ないとは言えない」→「〜と言える」' },
   ]
   const issues: Issue[] = []
-  patterns.forEach(p => {
-    if (p.test(text)) {
+  patterns.forEach(({ re, fix }) => {
+    if (re.test(text)) {
       issues.push({
         id: 'R005',
         severity: 'warning',
         message: '二重否定が含まれています',
-        detail: '「〜ないわけではない」などの二重否定は肯定表現に書き換えると明確になります。',
+        detail: '二重否定は肯定表現に書き換えると明確になります。',
+        suggestedFix: fix,
         pro: true,
       })
     }
@@ -129,6 +177,9 @@ export function checkStyleMix(sentences: string[]): Issue[] {
       severity: 'warning',
       message: 'です・ます調とだ・である調が混在しています',
       detail: '文体を統一するとより読みやすい文章になります。',
+      suggestedFix: desu >= da
+        ? '「〜だ。」「〜である。」→「〜です。」「〜ます。」に統一しましょう。'
+        : '「〜です。」「〜ます。」→「〜だ。」「〜である。」に統一しましょう。',
       pro: true,
     }]
   }
@@ -137,20 +188,32 @@ export function checkStyleMix(sentences: string[]): Issue[] {
 
 // R007: 冗長表現（Pro）
 export function checkRedundancy(text: string): Issue[] {
-  const patterns: { pattern: RegExp; suggestion: string }[] = [
-    { pattern: /することができ/g, suggestion: '「できる」に言い換えられます' },
-    { pattern: /していただく/g, suggestion: '「もらう」に言い換えると簡潔になります' },
-    { pattern: /という形で/g, suggestion: '「という形で」は省略できます' },
-    { pattern: /〜的な/g, suggestion: '「〜的な」は言い換えを検討してください' },
+  const patterns: { pattern: RegExp; message: string; fix: string }[] = [
+    {
+      pattern: /することができ/g,
+      message: '冗長な表現「することができ〜」',
+      fix: '「〜することができます」→「〜できます」',
+    },
+    {
+      pattern: /していただく/g,
+      message: '冗長な表現「していただく」',
+      fix: '「〜していただく」→「〜もらう」または「〜いただく」',
+    },
+    {
+      pattern: /という形で/g,
+      message: '冗長な表現「という形で」',
+      fix: '「〜という形で行います」→「〜します」',
+    },
   ]
   const issues: Issue[] = []
-  patterns.forEach(({ pattern, suggestion }) => {
+  patterns.forEach(({ pattern, message, fix }) => {
     if (pattern.test(text)) {
       issues.push({
         id: 'R007',
         severity: 'info',
-        message: '冗長な表現が含まれています',
-        detail: suggestion,
+        message,
+        detail: 'より簡潔な表現に言い換えましょう。',
+        suggestedFix: fix,
         pro: true,
       })
     }
