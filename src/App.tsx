@@ -48,12 +48,22 @@ export default function App() {
                 ✨ Pro
               </span>
             ) : (
-              <button
-                className="text-xs bg-purple-600 hover:bg-purple-700 text-white font-medium px-3 py-1.5 rounded-full transition"
-                onClick={() => setShowModal(true)}
-              >
-                Pro版 月額300円
-              </button>
+              <div className="flex items-center gap-2">
+                <a
+                  href="https://yomiyasu.lemonsqueezy.com/checkout/buy/8aa2fc52-0ac1-486b-86d8-6ae823b9a86a"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs bg-purple-600 hover:bg-purple-700 text-white font-medium px-3 py-1.5 rounded-full transition"
+                >
+                  Pro版を購入（月額300円）
+                </a>
+                <button
+                  className="text-xs text-purple-600 hover:underline"
+                  onClick={() => setShowModal(true)}
+                >
+                  キー認証
+                </button>
+              </div>
             )}
           </div>
         </div>

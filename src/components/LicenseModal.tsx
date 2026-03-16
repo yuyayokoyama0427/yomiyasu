@@ -49,9 +49,10 @@ export function LicenseModal({ onActivate, onClose, loading, error }: Props) {
         <p className="text-xs text-gray-400 mt-3 text-center">
           まだお持ちでない方は{' '}
           <a
-            href="#"
+            href="https://yomiyasu.lemonsqueezy.com/checkout/buy/8aa2fc52-0ac1-486b-86d8-6ae823b9a86a"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-purple-600 underline"
-            onClick={e => e.preventDefault()}
           >
             こちらから購入（月額300円）
           </a>
