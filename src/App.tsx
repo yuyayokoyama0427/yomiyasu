@@ -13,8 +13,13 @@ const PLACEHOLDER = `ここに文章を貼り付けてください。
 例：
 日本語の文章を書くとき、一文が長くなりすぎると読みにくくなることがありますので、適切な長さに区切ることが大切です。また、同じ語尾を繰り返したり、漢字が多すぎたりすることも読みにくさの原因になります。`
 
+function stripUrls(text: string): string {
+  return text.replace(/https?:\/\/\S+/g, '')
+}
+
 export default function App() {
   const [text, setText] = useState('')
+  const [excludeUrls, setExcludeUrls] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const { isPro, activate, loading, error } = usePro()
   const { result, run } = useAnalyzer(isPro)
@@ -22,7 +27,13 @@ export default function App() {
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const val = e.target.value
     setText(val)
-    run(val)
+    run(excludeUrls ? stripUrls(val) : val)
+  }
+
+  function handleToggleExcludeUrls() {
+    const next = !excludeUrls
+    setExcludeUrls(next)
+    run(next ? stripUrls(text) : text)
   }
 
   async function handleActivate(key: string) {
@@ -74,14 +85,25 @@ export default function App() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <span className="text-sm font-medium text-gray-600">文章を入力</span>
-            {text.length > 0 && (
-              <button
-                className="text-xs text-gray-400 hover:text-gray-600"
-                onClick={() => { setText(''); run('') }}
-              >
-                クリア
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={excludeUrls}
+                  onChange={handleToggleExcludeUrls}
+                  className="w-3.5 h-3.5 accent-purple-600"
+                />
+                <span className="text-xs text-gray-500">URLを除外してチェック</span>
+              </label>
+              {text.length > 0 && (
+                <button
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                  onClick={() => { setText(''); run('') }}
+                >
+                  クリア
+                </button>
+              )}
+            </div>
           </div>
           <textarea
             className="w-full px-4 py-4 text-base text-gray-800 resize-none focus:outline-none leading-relaxed"
