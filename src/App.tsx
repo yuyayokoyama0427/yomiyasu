@@ -86,6 +86,9 @@ export default function App() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <span className="text-sm font-medium text-gray-600">文章を入力</span>
             <div className="flex items-center gap-3">
+              {text.length > 0 && (
+                <span className="text-xs text-gray-400">{text.length.toLocaleString()}文字</span>
+              )}
               <label className="flex items-center gap-1.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
