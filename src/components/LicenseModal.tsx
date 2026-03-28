@@ -14,6 +14,14 @@ export function LicenseModal({ onActivate, onClose, loading, error }: Props) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
         <h2 className="text-lg font-bold text-gray-800 mb-1">Pro版を有効化</h2>
+
+        <div className="bg-purple-50 rounded-xl p-3 mb-4 text-sm text-purple-800 space-y-1">
+          <p className="font-semibold text-purple-900 mb-1.5">Pro版でできること</p>
+          <p>✓ 二重否定チェック（「〜でないわけではない」など）</p>
+          <p>✓ 文体混在チェック（です・ます調 ↔ だ・である調）</p>
+          <p>✓ 冗長表現チェック（「〜することができる」など）</p>
+        </div>
+
         <p className="text-sm text-gray-500 mb-4">
           購入後にメールで届いたライセンスキーを入力してください。
         </p>

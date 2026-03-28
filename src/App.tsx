@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import './index.css'
 import { useAnalyzer } from './hooks/useAnalyzer'
 import { usePro } from './hooks/usePro'
@@ -19,15 +19,23 @@ function stripUrls(text: string): string {
 
 export default function App() {
   const [text, setText] = useState('')
-  const [excludeUrls, setExcludeUrls] = useState(false)
+  const [excludeUrls, setExcludeUrls] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const { isPro, activate, loading, error } = usePro()
   const { result, run } = useAnalyzer(isPro)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const debouncedRun = useCallback((val: string, excludeUrlsFlag: boolean) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      run(excludeUrlsFlag ? stripUrls(val) : val)
+    }, 300)
+  }, [run])
 
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const val = e.target.value
     setText(val)
-    run(excludeUrls ? stripUrls(val) : val)
+    debouncedRun(val, excludeUrls)
   }
 
   function handleToggleExcludeUrls() {
@@ -37,8 +45,8 @@ export default function App() {
   }
 
   async function handleActivate(key: string) {
-    await activate(key)
-    if (!error) {
+    const ok = await activate(key.trim())
+    if (ok) {
       setShowModal(false)
       if (text) run(text)
     }
@@ -72,7 +80,7 @@ export default function App() {
                   className="text-xs text-purple-600 hover:underline"
                   onClick={() => setShowModal(true)}
                 >
-                  キー認証
+                  購入済みの方はこちら
                 </button>
               </div>
             )}
@@ -89,7 +97,7 @@ export default function App() {
               {text.length > 0 && (
                 <span className="text-xs text-gray-400">{text.length.toLocaleString()}文字</span>
               )}
-              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+              <label className="flex items-center gap-1.5 cursor-pointer select-none" title="「https://...」形式のURLを文字数・チェックから除外します">
                 <input
                   type="checkbox"
                   checked={excludeUrls}
@@ -132,7 +140,7 @@ export default function App() {
 
             {/* Issues */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <IssueList issues={result.issues} isPro={isPro} />
+              <IssueList issues={result.issues} isPro={isPro} charCount={result.charCountNoSpace} />
               {!isPro && (
                 <p className="text-xs text-gray-400 mt-4 text-center">
                   Pro版（月額300円）でさらに詳細なチェックが利用できます。{' '}
@@ -157,8 +165,13 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="text-center text-xs text-gray-400 py-8">
-        © 2026 Yomiyasu
+      <footer className="text-center text-xs text-gray-400 py-8 space-y-2">
+        <div className="flex justify-center gap-4">
+          <a href="/privacy" className="hover:text-gray-600 underline">プライバシーポリシー</a>
+          <a href="/terms" className="hover:text-gray-600 underline">利用規約</a>
+          <a href="mailto:support@yomiyasu.app" className="hover:text-gray-600 underline">お問い合わせ</a>
+        </div>
+        <div>© 2026 Yomiyasu</div>
       </footer>
 
       {showModal && (

@@ -71,7 +71,7 @@ export function analyze(text: string, isPro: boolean): AnalysisResult {
     : 0
 
   // 無料チェック
-  const issues: Issue[] = [
+  const freeIssues: Issue[] = [
     ...checkParticleMistake(text),
     ...checkLongSentence(sentences),
     ...checkRepeatedEnding(sentences),
@@ -79,7 +79,11 @@ export function analyze(text: string, isPro: boolean): AnalysisResult {
     ...checkHiraganaRatio(text, hiraganaRatio),
   ]
 
-  // Proチェック
+  // スコアは無料チェックの結果のみで算出（Pro有効化でスコアが下がらないようにする）
+  const score = calcScore(avgSentenceLength, hiraganaRatio, freeIssues.length)
+
+  // Proチェック（スコアには影響しない）
+  const issues: Issue[] = [...freeIssues]
   if (isPro) {
     issues.push(
       ...checkDoubleNegative(text),
@@ -87,8 +91,6 @@ export function analyze(text: string, isPro: boolean): AnalysisResult {
       ...checkRedundancy(text),
     )
   }
-
-  const score = calcScore(avgSentenceLength, hiraganaRatio, issues.length)
 
   return {
     charCount,

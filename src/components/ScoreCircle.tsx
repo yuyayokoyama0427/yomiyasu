@@ -9,8 +9,9 @@ function scoreColor(score: number): string {
 }
 
 function scoreLabel(score: number): string {
+  if (score === 100) return '満点！'
   if (score >= 80) return '読みやすい'
-  if (score >= 60) return 'まあまあ'
+  if (score >= 60) return '改善の余地あり'
   return '要改善'
 }
 

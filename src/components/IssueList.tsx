@@ -4,6 +4,7 @@ import type { Issue } from '../lib/rules'
 interface Props {
   issues: Issue[]
   isPro: boolean
+  charCount?: number
 }
 
 const severityStyle: Record<string, string> = {
@@ -69,9 +70,15 @@ function IssueCard({ issue }: { issue: Issue }) {
   )
 }
 
-export function IssueList({ issues, isPro }: Props) {
+const PRO_TEASERS = [
+  { severity: 'warning' as const, message: '二重否定が含まれています', detail: '「〜でないわけではない」などの表現は読みにくくなります。' },
+  { severity: 'info' as const, message: '文体が混在しています', detail: '「です・ます調」と「だ・である調」が混在しています。' },
+]
+
+export function IssueList({ issues, isPro, charCount = 0 }: Props) {
   const freeIssues = issues.filter(i => !i.pro)
   const proIssues = issues.filter(i => i.pro)
+  const isShortText = charCount > 0 && charCount < 50
 
   return (
     <div className="space-y-3">
@@ -80,7 +87,13 @@ export function IssueList({ issues, isPro }: Props) {
         {freeIssues.length > 0 && <span className="ml-1 text-gray-400">（{freeIssues.length}件）</span>}
       </h3>
 
-      {freeIssues.length === 0 && (
+      {isShortText && (
+        <div className="text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+          💡 文章が短いため、一部のチェックが正確に動作しない場合があります。100文字以上の文章でより正確な結果が得られます。
+        </div>
+      )}
+
+      {freeIssues.length === 0 && !isShortText && (
         <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
           ✅ 指摘事項はありません。読みやすい文章です！
         </div>
@@ -91,9 +104,24 @@ export function IssueList({ issues, isPro }: Props) {
       ))}
 
       {!isPro && (
-        <div className="border border-dashed border-purple-300 rounded-xl px-4 py-3 text-sm text-purple-600 bg-purple-50">
-          🔒 Pro版では詳細チェック（二重否定・文体混在・冗長表現など）も利用できます
-        </div>
+        <>
+          <h3 className="text-sm font-semibold text-gray-500 pt-1">
+            Proチェック（プレビュー）
+          </h3>
+          {PRO_TEASERS.map((t, i) => (
+            <div key={i} className={`border rounded-xl overflow-hidden relative ${severityStyle[t.severity]}`}>
+              <div className={`px-4 py-3 text-sm blur-sm select-none ${severityTextStyle[t.severity]}`}>
+                <div className="font-medium">{severityIcon[t.severity]} {t.message}</div>
+                <div className="mt-1 opacity-80 text-xs">{t.detail}</div>
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs font-bold text-purple-600 bg-white/90 px-2 py-1 rounded-full border border-purple-200">
+                  🔒 Pro版で確認
+                </span>
+              </div>
+            </div>
+          ))}
+        </>
       )}
 
       {isPro && proIssues.length > 0 && (
